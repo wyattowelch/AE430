@@ -1,7 +1,7 @@
 function f_c = costFun(x, N_spools, data)    
     
 
-    results = engineModel(x, N_spools, data)
+    results = engineModel(x, N_spools, data);
     % Returns (at minimum):
         % A_max_eng
         % tot_l
