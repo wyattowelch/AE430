@@ -27,8 +27,8 @@ data.gamma_49 = 1.3;
 data.Cp_49 = 1250; % J/kgK
 
     % Coolant
-data.gamma_cool = gamma_03;
-data.Cp_cool = Cp_03; % J/kgK
+data.gamma_cool = gamma.gamma_03;
+data.Cp_cool = data.Cp_03; % J/kgK
 data.Pr = 0.7;
 data.mu_cool = 4e-5; % kg/ms
 % Use Pt3 and Tt3 as stagnation pressure and temperature
@@ -48,14 +48,14 @@ data.epsilon = 0.55 * 9.81; % Tip clearance parameter is epsilon/g = 0.55
 
 
 
-x = [pi_c; Tt4];
 x0 = [20; 1700];
+    % pi_c; Tt5
 
 
     % Bounds
 
-    lb = [];
-    ub = [];
+    lb = [5; 1200];
+    ub = [60; 1900];
 
     % Linear constraints
 
@@ -76,7 +76,7 @@ best_x  = [];
 best_N  = [];
 
 for N_spools = [1 2 3]
-    fun = costFcn(x, N_spools, data);
+    fun = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
 
     
