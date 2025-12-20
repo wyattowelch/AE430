@@ -34,8 +34,8 @@ DeltaTt = W_comp/(eta_m*mdot_t*cp);
 Tt5 = Tt4 - DeltaTt;
 
 %% Ainley profile loss → uncooled efficiency
-% Reaction blade, s/c ≈ 0.7, beta3 ≈ 60°
-Yp = 0.035;   % from Fig. 10.16 (typical)
+% Reaction blade, s/c ≈ 0.942, beta3 ≈ -70°
+Yp = 0.045;   % from Fig. 10.16
 eta_uncooled = 1 - Yp;
 
 %% Cooling calculation (Farokhi Ch. 7.5)
@@ -102,3 +102,4 @@ turbine.M_tip_turb = M_tip;
 turbine.sigma_c = sigma_c;
 
 end
+
