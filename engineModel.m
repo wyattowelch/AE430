@@ -17,10 +17,10 @@ function results = engineModel(x, N_spools, data)
     % Stage Calculations
     
     inlet = inletModel(x, N_spools, data);
-    comp = compressorModel(x, N_spools, data);
-    burner = burnerModel(x, N_spools, data);
-    turbine = turbineModel(x, N_spools, data);
-    nozzle = nozzleModel(x, N_spools, data);
+    comp = compressorModel(x, N_spools, data, inlet);
+    burner = burnerModel(x, N_spools, data, inlet, comp);
+    turbine = turbineModel(x, N_spools, data, inlet, comp, burner);
+    nozzle = nozzleModel(x, N_spools, data, inlet, comp, burner, turbine);
     
 
     % Compute outputs    

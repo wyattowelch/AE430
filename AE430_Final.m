@@ -67,9 +67,6 @@ x0 = [20; 1700];
     Aeq = [];
     beq = [];
 
-options = optimoptions('fmincon', 'Algorithm', 'sqp', 'Display', 'iter', 'MaxFunctionEvaluations', 1e5);
-
-
 
 % Calculate minimum f_c for a set of N_spools
 
