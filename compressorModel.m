@@ -26,12 +26,17 @@ N_stages = 11;
 %% 
 % 2) Compressor inlet (station 2)
 
-R = cp*(gamma-1)/gamma;
-a0 = sqrt(gamma*R*T0);
-M0 = V0/a0;
-
-Tt2 = T0*(1 + (gamma-1)/2*M0^2);
-Pt2 = P0*(1 + (gamma-1)/2*M0^2)^(gamma/(gamma-1));
+if nargin >= 4 && isstruct(inlet) && isfield(inlet,'Tt2') && isfield(inlet,'Pt2') ...
+        && ~isempty(inlet.Tt2) && ~isempty(inlet.Pt2)
+    Tt2 = inlet.Tt2;
+    Pt2 = inlet.Pt2;
+else
+    % fallback if inlet model isnt done
+    a0 = sqrt(gamma*R*T0);
+    M0 = V0/a0;
+    Tt2 = T0*(1 + (gamma-1)/2*M0^2);
+    Pt2 = P0*(1 + (gamma-1)/2*M0^2)^(gamma/(gamma-1));
+end
 
 %% 
 % 3) Per-stage pressure ratio
@@ -55,6 +60,10 @@ for i = 1:N_stages
 
     % Isentropic temperature ratio for this stage
     tau_is = pi_stage^((gamma-1)/gamma);
+
+    % Get eta_c
+    eta_c = getOr(data, 'eta_c', 0.85);  
+    eta_c = min(max(eta_c, .7), .95);
 
     % Actual temperature rise (efficiency included)
     dTt = (Tt(i)/eta_c)*(tau_is - 1);

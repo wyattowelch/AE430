@@ -4,12 +4,12 @@
 % Wyatt, Ethan, Nick, Jayden, Luis
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+clc
 % Define set constants
-
-data = struct()
+data = struct();
 
 data.F_req = 350e3; % N
+
 
     % Blades
 data.blade_density = 8e3; % kg/m^3
@@ -29,7 +29,7 @@ data.gamma_49 = 1.3;
 data.Cp_49 = 1250; % J/kgK
 
     % Coolant
-data.gamma_cool = gamma.gamma_03;
+data.gamma_cool = data.gamma_03;
 data.Cp_cool = data.Cp_03; % J/kgK
 data.Pr = 0.7;
 data.mu_cool = 4e-5; % kg/ms
@@ -48,7 +48,7 @@ data.epsilon = 0.55 * 9.81; % Tip clearance parameter is epsilon/g = 0.55
 
 % Define design variables
 
-x = [pi_c, Tt5];
+%x = [pi_c, Tt5];
 
 x0 = [20; 1700];
     % pi_c; Tt5
@@ -81,7 +81,7 @@ ub = [60; 1900];
 for N_spools = [1 2 3]
     fun     = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
-    [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon, options);
+    [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
 
     if fval < best_f
         best_f = fval;

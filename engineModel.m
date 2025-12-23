@@ -3,13 +3,13 @@ function results = engineModel(x, N_spools, data)
     % Unpack Variables
         % Constants
     
-        V0 = data.V0;
-        gamma = data.gamma;
-        F_req = data.F_req;
+        % V0 = data.V0;
+        % gamma = data.gamma;
+        % F_req = data.F_req;
     
         % Design Vars
     
-        pi_c = x(1);
+        % pi_c = x(1);
         % ...
         % ...
     
