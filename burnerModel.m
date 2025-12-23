@@ -1,4 +1,4 @@
-function burner = burnerModel(x, N_spools, data)
+function burner = burnerModel(x, N_spools, data, inlet, compressor)
 % ---------------------------------------------------------
 % burnerModel
 % ---------------------------------------------------------

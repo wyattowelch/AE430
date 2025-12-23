@@ -1,4 +1,4 @@
-function compressor = compressorModel(x, N_spools, data)
+function compressor = compressorModel(x, N_spools, data, inlet)
 % compressorModel
 % 11-stage axial compressor model compatible with burnerModel and turbineModel
 %

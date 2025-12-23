@@ -1,4 +1,4 @@
-function turbine = turbineModel(x, N_spools, data)
+function turbine = turbineModel(x, N_spools, data, inlet, compressor, burner)
 % turbineModel(x, N_spools, data)
 % ============================================================
 % AE 430 Final Project – Consolidated Turbine Model (single file)

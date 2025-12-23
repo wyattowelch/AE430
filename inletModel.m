@@ -1,4 +1,4 @@
-function inlet = inletModel(x, N_spools, data, nozzle)
+function inlet = inletModel(x, N_spools, data)
     
     % Simplify variables
     gam = data.gamma_03;
