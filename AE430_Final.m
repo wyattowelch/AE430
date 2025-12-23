@@ -7,6 +7,8 @@
 
 % Define set constants
 
+data = struct()
+
 data.F_req = 350e3; % N
 
     % Blades
@@ -46,7 +48,7 @@ data.epsilon = 0.55 * 9.81; % Tip clearance parameter is epsilon/g = 0.55
 
 % Define design variables
 
-
+x = [pi_c, Tt5];
 
 x0 = [20; 1700];
     % pi_c; Tt5
@@ -75,18 +77,18 @@ best_f  = Inf;
 best_x  = [];
 best_N  = [];
 
-for N_spools = [1 2 3]
-    fun = @(x) costFun(x, N_spools, data);
-    nonlcon = @(x) constraints(x, N_spools, data);
+x0 = [20; 1700];
+lb = [5; 1200];
+ub = [60; 1900];
 
-    
+for N_spools = [1 2 3]
+    fun     = @(x) costFun(x, N_spools, data);
+    nonlcon = @(x) constraints(x, N_spools, data);
     [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon, options);
-    
+
     if fval < best_f
         best_f = fval;
         best_x = x_opt;
         best_N = N_spools;
     end
 end
-
-
