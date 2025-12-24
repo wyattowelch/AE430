@@ -18,7 +18,8 @@ P0 = data.P0;                     % Pa
 V0 = data.V0;                       % m/s
 
 
-mdot3 = getOr(data,'mdot3',getOr(data,'mdot_core',[]));
+mdot3 = inlet.mdot0;
+compressor.mdot3 = mdot3;
 
 % FIXED number of stages (11 for project requirement)
 N_stages = 11;
@@ -55,10 +56,9 @@ Pt(1) = Pt2;
 
 %%
 % Geometry
-omega = getOr(data,'omega_comp',getOr(data,'omega',[]));
-if isempty(omega), error('Need data.omega_comp or data.omega'); end
+omega = data.omega;
 
-Cz = getOr(data,'Cz_comp',150);
+Cz = data.Cz_comp;
 
 % Use inlet annulus if available; else use data fields
 if nargin >= 4 && isstruct(inlet) && isfield(inlet,'Ri2') && isfield(inlet,'Ro2')
@@ -82,7 +82,7 @@ for i = 1:N_stages
     tau_is = pi_stage^((gamma-1)/gamma);
 
     % Get eta_c
-    eta_c = getOr(data, 'eta_c', 0.85);  
+    eta_c = data.eta_c;  
     eta_c = min(max(eta_c, .7), .95);
 
     % Actual temperature rise (efficiency included)
@@ -96,7 +96,7 @@ for i = 1:N_stages
     
     r_list = [r_h r_m r_t];
     
-    deH_min = getOr(data,'deH_min',0.72);
+    deH_min = 0.72;
     stalls_stage = zeros(N_stages,3);
 
     for j = 1:3
@@ -129,6 +129,34 @@ for i = 1:N_stages
 
     % Stage specific work
     W_stage(i) = cp * dTt;
+
+    Delta_h0 = cp*dTt;        % J/kg stage work
+    
+    U_m = omega*r_m;
+    Cth2_m = Delta_h0 / max(U_m,1e-9);   % Euler, assuming Ctheta1=0 at meanline
+    K = r_m * Cth2_m;                    % free-vortex constant
+
+    Mtip_max = 0;
+    U_tip = omega*r_t;
+    Cth1_tip = 0;
+    Cth2_tip = K / r_t;                 % free vortex to tip
+    
+    % Relative speeds at tip (rotor inlet and rotor exit)
+    W1_tip = hypot(Cz, (Cth1_tip - U_tip));
+    W2_tip = hypot(Cz, (Cth2_tip - U_tip));
+    
+    % Approximate static T at stage inlet using total T (from your compressor march)
+    % Use the current stage inlet total Tt_in (e.g., Tt_prev) and absolute velocity estimate
+    Vabs_tip = hypot(Cz, Cth1_tip);     % at rotor inlet; you can also check exit
+    a_tip = sqrt(gamma*R*(max(Tt(i),1) / (1 + (gamma-1)/2*(Vabs_tip^2/(gamma*R*max(Tt(i),1)))))); 
+    % ^ this is a quick one-shot "use Tt to estimate T" without iteration
+    
+    M1_tip = W1_tip / max(a_tip,1e-9);
+    M2_tip = W2_tip / max(a_tip,1e-9);
+    
+    Mtip_max = max([Mtip_max, M1_tip, M2_tip]);
+
+
 end
 
 
@@ -158,6 +186,8 @@ compressor.Pt3 = Pt3;
 
 compressor.pi_c = pi_c;
 compressor.N_stages = N_stages;
+compressor.M_tip_comp = Mtip_max;
+
 
 compressor.W_stage = W_stage;      % J/kg per stage
 compressor.W_comp  = W_comp;       % J/kg total
@@ -186,8 +216,27 @@ compressor.stageTable = table( ...
     'VariableNames', ...
     {'Stage','Tt_in_K','Tt_out_K','Pt_in_Pa','Pt_out_Pa','pi_stage','W_stage_Jpkg'} );
 
+% Length
+c = data.c;
+cz_factor  = getOr(data,'cz_factor_core',0.8);
+gap_factor = getOr(data,'gap_factor_core',0.2);
+
+cz  = cz_factor*c;
+gap = gap_factor*c;
+
+N_rows = 2*N_stages;                 % rotor+stator rows
+compressor.l_c = N_rows*cz + (N_rows-1)*gap;
+
+
+
 compressor.success = true;
 
+compressor.reactionVals = reactionVals_stage(:);
+compressor.omega = omega;
+compressor.r_h = r_h;
+compressor.r_t = r_t;
+compressor.Cz = Cz;
+compressor.stalls = stalls_stage(:);
 end
 
 %%
@@ -199,12 +248,7 @@ function v = getOr(s, field, defaultVal)
     else
         v = defaultVal;
     end
+
+
 end
 
-compressor.reactionVals = reactionVals_stage(:);
-compressor.stalls = stalls;
-compressor.omega = omega;
-compressor.r_h = r_h;
-compressor.r_t = r_t;
-compressor.Cz = Cz;
-compressor.stalls = stalls_stage(:);

@@ -11,7 +11,9 @@ function inlet = inletModel(x, N_spools, data)
 
     % Stagnation Pressure / Temperature
     inlet.Tt0 = data.T0 * (1 + ((gam - 1) / 2) * M0 ^ 2);
+    Tt0 = inlet.Tt0;
     inlet.Pt0 = data.P0 * (1 + ((gam - 1) / 2) * M0 ^ 2) ^ (gam / (gam - 1));
+    Pt0 = inlet.Pt0;
 
     % Stage 1/2 Vars
     inlet.Tt1 = inlet.Tt0;
@@ -78,8 +80,8 @@ function inlet = inletModel(x, N_spools, data)
     L_ax = abs(dRo) / tan(phi);
 
         % Wall length
-    Lo = sqrt(L_ax ^ 2 + dRo ^ 2);
-    Li = sqrt(L_ax ^ 2 + dRi ^ 2);
+    Lo = sqrt(max(L_ax, 1e-6) ^ 2 + dRo ^ 2);
+    Li = sqrt(max(L_ax, 1e-6) ^ 2 + dRi ^ 2);
 
     Lbar = .5 * (Li + Lo);
 
@@ -143,7 +145,7 @@ function inlet = inletModel(x, N_spools, data)
         T2 = 1;
     end
 
-    a2 = sqrt(gam * R  * T2);
+    a2 = sqrt(gam * R  * max(T2,1));
     M2 = V2 / a2;
 
     % Packaging
@@ -156,5 +158,8 @@ function inlet = inletModel(x, N_spools, data)
     
     inlet.D_add = 0;
     inlet.F_lip = 0;
+
+    mfp = M1*(1+(gam-1)/2*M1^2)^(-(gam+1)/(2*(gam-1)));
+    inlet.mdot0 = Pt0*inlet.A1/sqrt(Tt0) * sqrt(gam/R) * mfp;
 
 end

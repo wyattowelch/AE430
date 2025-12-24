@@ -43,7 +43,7 @@ function [c, ceq] = constraints(x, N_spools, data)
 
     % Equality Constraints:
 
-    ceq(end+1) = results.F - data.F_req;
+    ceq(end+1) = results.F_in - data.F_req;
 
 
 end

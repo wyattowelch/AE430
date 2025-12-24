@@ -4,7 +4,7 @@
 % Wyatt, Ethan, Nick, Jayden, Luis
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clc
+clc;
 % Define set constants
 data = struct();
 
@@ -91,6 +91,8 @@ omega_max = (a_ref / data.r_t_comp) * sqrt(max(1.2^2 - Mz^2, 0.01));
 data.omega_comp = 0.9 * omega_max;
 data.omega_turb = data.omega_comp;
 data.omega      = data.omega_comp;
+data.eta_c = .85;
+data.burner_phi_deg = 7;
 
 % Define design variables
 
@@ -120,13 +122,20 @@ best_f  = Inf;
 best_x  = [];
 best_N  = [];
 
-x0 = [20; 1700];
+x0 = [10; 1750];
 lb = [5; 1200];
 ub = [60; 1900];
 
 for N_spools = [1 2 3]
+
+    dbstop if error
     fun     = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
+    
+    fun(x0)          % <-- this will show exactly where it fails
+    nonlcon(x0)      % <-- then check constraints
+
+
     [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
 
     if fval < best_f

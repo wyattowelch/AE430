@@ -1,19 +1,5 @@
 function results = engineModel(x, N_spools, data)
 
-    % Unpack Variables
-        % Constants
-    
-        % V0 = data.V0;
-        % gamma = data.gamma;
-        % F_req = data.F_req;
-    
-        % Design Vars
-    
-        % pi_c = x(1);
-        % ...
-        % ...
-    
-
     % Stage Calculations
     
     inlet = inletModel(x, N_spools, data);
@@ -27,9 +13,9 @@ function results = engineModel(x, N_spools, data)
     
 
     
-    % Compute outputs    
+    % Compute outputs & Unpack   
 
-    results.A_max_eng = max([inlet.A1, inlet.A2, nozzle.A_t, nozzle.A_e]);
+    results.A_max_eng = max([inlet.A1, inlet.A2, burner.A3, nozzle.A_t, nozzle.A_e]);
 
     results.D_add = D_add;
     results.F_lip = F_lip;
@@ -38,7 +24,7 @@ function results = engineModel(x, N_spools, data)
     results.F_in = results.F_un - D_add + F_lip;
 
     mdot_fuel = burner.f * burner.mdot3;
-    results.eta_0 = results.F * data.V0 / (mdot_fuel * data.LHV);
+    results.eta_0 = results.F_in * data.V0 / (mdot_fuel * data.LHV);
 
     results.Tt4 = burner.Tt4;
     results.X_CO = burner.X_CO;
@@ -49,10 +35,17 @@ function results = engineModel(x, N_spools, data)
 
     results.sigma_c = turbine.sigma_c;
     results.M_tip_turb = turbine.M_tip_turb;
-    results.reactionVals = [compressor.reactionVals; turbine.reactionVals];
-    results.stalls = compressor.stalls;
+    results.M_tip_comp = comp.M_tip_comp;
+    results.reactionVals = [comp.reactionVals; turbine.reactionVals];
+    results.stalls = comp.stalls;
 
+    l_id = inlet.L_ax;
+    l_c = comp.l_c;
+    l_b = burner.l_b;
+    l_bd = burner.l_bd;
+    l_t = turbine.l_t;
+    l_n = nozzle.l_n;
 
-
+    results.l_tot = l_id + l_c + l_b + l_bd + l_t + l_n;
 
 end

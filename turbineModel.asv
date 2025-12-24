@@ -45,6 +45,9 @@ cp_g = data.Cp_49;
 gamma_g = data.gamma_49;
 R_g = cp_g * ((gamma_g - 1) / gamma_g);
 
+data.blade_kw = 50; % W/mK
+data.blade_tw = 2e-3;
+
 % mechanical efficiency (project)
 eta_m = 0.98;
 
@@ -263,7 +266,7 @@ for i = 1:N_stages
     end
 
     % Tip relative Mach check per equation sheet form
-    a_guess = sqrt(gamma_g*Rg*Tt1);  % conservative using total temp
+    a_guess = sqrt(gamma_g*R_g*Tt1);  % conservative using total temp
     Mz = Cz/max(a_guess,1e-9);
     MT_tip = U_tip/max(a_guess,1e-9);
     Mtip_r = sqrt(Mz^2 + (MT_tip - Mz*tan(alpha1))^2);
@@ -291,6 +294,27 @@ for i = 1:N_stages
     stage(i).R_est = R_est;
     stage(i).Mtip_r = Mtip_r;
     stage(i).sigma_c = sigma_c;
+end
+
+% Reaction Vals Loop
+r_list = [r_h, r_m, r_t];   % r_m already defined as 0.5*(r_h+r_t)
+Rv = zeros(N_stages, numel(r_list));
+
+for i = 1:N_stages
+    % meanline swirl already stored
+    Cth2_m = stage(i).Ctheta2;     % at mean radius in your model
+    K = r_m * Cth2_m;              % free vortex constant
+
+    for j = 1:numel(r_list)
+        r = r_list(j);
+        U = omega * r;
+
+        Cth1 = 0;                  % your model assumes Ctheta1=0
+        Cth2 = K / r;
+
+        R_here = 0.5 + (Cth1 + Cth2)/(2*U);  % same form you used
+        Rv(i,j) = R_here;
+    end
 end
 
 Tt5 = Tt_stage(end);
@@ -328,6 +352,9 @@ turbine.P_turb_shaft_needed = P_turb_shaft_needed;
 turbine.P_delivered = eta_m * (mdot_g * cp_g * (Tt4 - Tt5)); % delivered to compressor
 
 turbine.stage = stage;
+turbine.reactionVals = Rv(:);   % vector for constraints.m
+turbine.M_tip_turb = max([stage.Mtip_r]);
+
 
 % Constraints
 turbine.constraints = struct();
@@ -457,4 +484,6 @@ k = (Y30 - Ymin) / (0.3 - sopt)^2;
 Yp = Ymin + k*(s - sopt)^2;
 
 Yp = max(0.005, min(0.25, Yp)); % clamp
+
+turbine.sigma_c = sigma_c;
 end
