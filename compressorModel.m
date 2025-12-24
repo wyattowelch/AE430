@@ -6,7 +6,7 @@ function compressor = compressorModel(x, N_spools, data, inlet)
 
 %%
 % 1) Inputs and constants
-
+compressor = struct();
 pi_c = x(1);
 
 gamma = data.gamma_03;
@@ -54,6 +54,26 @@ Tt(1) = Tt2;
 Pt(1) = Pt2;
 
 %%
+% Geometry
+omega = getOr(data,'omega_comp',getOr(data,'omega',[]));
+if isempty(omega), error('Need data.omega_comp or data.omega'); end
+
+Cz = getOr(data,'Cz_comp',150);
+
+% Use inlet annulus if available; else use data fields
+if nargin >= 4 && isstruct(inlet) && isfield(inlet,'Ri2') && isfield(inlet,'Ro2')
+    r_h = inlet.Ri2;
+    r_t = inlet.Ro2;
+else
+    r_h = getOr(data,'r_h_comp',0.25);
+    r_t = getOr(data,'r_t_comp',0.50);
+end
+r_m = 0.5*(r_h + r_t);
+U_m = omega * r_m;
+
+reactionVals_stage = zeros(N_stages,3);
+
+%%
 % 5) 11-stage compression loop
 
 for i = 1:N_stages
@@ -68,6 +88,41 @@ for i = 1:N_stages
     % Actual temperature rise (efficiency included)
     dTt = (Tt(i)/eta_c)*(tau_is - 1);
 
+    Delta_h0 = cp * dTt;      % J/kg for this stage (same as W_stage(i))
+    
+    % Meanline whirl assuming rotor inlet whirl ~ 0
+    Ctheta1_m = 0;
+    Ctheta2_m = Delta_h0 / U_m;   % Euler
+    
+    r_list = [r_h r_m r_t];
+    
+    deH_min = getOr(data,'deH_min',0.72);
+    stalls_stage = zeros(N_stages,3);
+
+    for j = 1:3
+        r = r_list(j);
+        U = omega * r;
+    
+        % free vortex scaling
+        Ctheta1 = 0;
+        Ctheta2 = Ctheta2_m * (r_m/r);
+    
+        % Use same reaction form as your turbineModel for consistency
+        R_here = 0.5 + (Ctheta2 + Ctheta1)/(2*U);
+    
+        reactionVals_stage(i,j) = R_here;
+
+        W1 = hypot(Cz, (Ctheta1 - U));
+        W2 = hypot(Cz, (Ctheta2 - U));
+        
+        deH = W2 / max(W1,1e-9);
+        
+        % store as a CONSTRAINT RESIDUAL: <= 0 means "not stalled"
+        stalls_stage(i,j) = deH_min - deH;
+
+    end
+
+
     % Update totals
     Tt(i+1) = Tt(i) + dTt;
     Pt(i+1) = Pt(i) * pi_stage;
@@ -75,6 +130,8 @@ for i = 1:N_stages
     % Stage specific work
     W_stage(i) = cp * dTt;
 end
+
+
 
 %% 
 % 6) Compressor exit (station 3)
@@ -143,3 +200,11 @@ function v = getOr(s, field, defaultVal)
         v = defaultVal;
     end
 end
+
+compressor.reactionVals = reactionVals_stage(:);
+compressor.stalls = stalls;
+compressor.omega = omega;
+compressor.r_h = r_h;
+compressor.r_t = r_t;
+compressor.Cz = Cz;
+compressor.stalls = stalls_stage(:);

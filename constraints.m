@@ -30,8 +30,8 @@ function [c, ceq] = constraints(x, N_spools, data)
     c(end+1) = results.M_tip_turb - 1.2;
 
     % rh, rm, rt cannot ctall
-    for k = 1:numel(stalls)
-        c(end+1) = results.stalls(k)
+    for k = 1:numel(results.stalls)
+        c(end+1) = results.stalls(k);
     end
 
     % degree of reaction between 1 and 0 

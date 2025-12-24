@@ -45,6 +45,52 @@ data.eta_m = 0.98;
 data.eta_n = 0.95;
 data.epsilon = 0.55 * 9.81; % Tip clearance parameter is epsilon/g = 0.55
 
+% Repeat data (lazy)
+% --- Derived gas constants ---
+data.R_03 = data.Cp_03*(data.gamma_03-1)/data.gamma_03;
+data.R_49 = data.Cp_49*(data.gamma_49-1)/data.gamma_49;
+
+% --- Alias to match turbineModel "must" fields ---
+data.gamma_g = data.gamma_49;
+data.cp_g    = data.Cp_49;
+data.R_g     = data.R_49;
+
+% Cooling aliases expected by turbineModel
+data.gamma_c = data.gamma_cool;
+data.cp_c    = data.Cp_cool;
+data.Pr_c    = data.Pr;
+data.mu_c    = data.mu_cool;
+
+% blade thermal aliases expected by turbineModel
+data.kw = data.blade_kw;
+data.tw = data.blade_tw;
+
+% stress limit (project)
+data.sigma_max = 70e6;
+
+data.N_turb_stages = 3;
+
+% Constant axial velocities (recommended constant Cz)
+data.Cz_comp = 150;   % m/s
+data.Cz_turb = 150;   % m/s
+
+% Pick an annulus (hub/tip). Start reasonable; later you should tie this to flow areas.
+data.r_h_comp = 0.25;  % m
+data.r_t_comp = 0.50;  % m
+data.r_h      = data.r_h_comp;  % turbineModel uses data.r_h/data.r_t
+data.r_t      = data.r_t_comp;
+
+% Pick a shaft speed. Start conservative; you can also compute from the tip-Mach limit (below).
+data.omega_comp = 600;  % rad/s
+data.omega_turb = 600;  % rad/s
+data.omega      = data.omega_comp;  % turbineModel will use data.omega
+
+a_ref = sqrt(data.gamma_03 * data.R_03 * data.T0); % conservative (coldest)
+Mz    = data.Cz_comp / a_ref;
+omega_max = (a_ref / data.r_t_comp) * sqrt(max(1.2^2 - Mz^2, 0.01));
+data.omega_comp = 0.9 * omega_max;
+data.omega_turb = data.omega_comp;
+data.omega      = data.omega_comp;
 
 % Define design variables
 

@@ -1,4 +1,4 @@
-function burner = burnerModel(x, N_spools, data, inlet, compressor)
+function burner = burnerModel(x, N_spools, data, inlet, comp)
 % ---------------------------------------------------------
 % burnerModel
 % ---------------------------------------------------------
@@ -80,7 +80,7 @@ A4    = mdot4/(rho4*V4);
 
 %% ---------------- Annular diffuser (Farokhi Ch. 6) ----------------
 % Geometry assumptions
-AR_diff = 1.8;         % area ratio A2/A1 (reasonable subsonic annular diffuser)
+AR_diff = inlet.A2 / inlet.A1;         % area ratio A2/A1 (reasonable subsonic annular diffuser)
 pi_d    = 0.985;       % total pressure recovery
 
 Pt4d = pi_d*Pt4;

@@ -1,4 +1,4 @@
-function nozzle = nozzleModel(x, N_spools, data, inlet, compressor, burner, turbine)
+function nozzle = nozzleModel(x, N_spools, data, inlet, comp, burner, turbine)
     
     % nozzle = struct containing full nozzle solution
 
@@ -7,9 +7,9 @@ Pa = data.P0;
 Ta = data.T0;
 
 % Nozzle inlet (station 9, turbine exit)
-Tt9 = turbine.Tt9; % K
-Pt9 = turbine.Pt9; % Pa
-mdot = turbine.mdot; % kg/s
+Tt9 = turbine.Tt5; % K
+Pt9 = turbine.Pt5; % Pa
+mdot = turbine.mdot5; % kg/s
 
 gamma = data.gamma_49;
 Cp = data.Cp_49;
