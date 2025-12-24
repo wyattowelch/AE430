@@ -63,7 +63,7 @@ else
 
     % Guard against tiny negative due to roundoff
     term = (Pt9_eff/Pa)^((gamma-1)/gamma) - 1;
-    term = max(term, 0);
+    term = max(term, 1e-6);
 
     M_e = sqrt((2/(gamma-1)) * term);
 

@@ -128,12 +128,12 @@ ub = [60; 1900];
 
 for N_spools = [1 2 3]
 
-    dbstop if error
+    % dbstop if error
     fun     = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
     
-    fun(x0)          % <-- this will show exactly where it fails
-    nonlcon(x0)      % <-- then check constraints
+    % fun(x0)          % <-- this will show exactly where it fails
+    % nonlcon(x0)      % <-- then check constraints
 
 
     [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
