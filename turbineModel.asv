@@ -266,7 +266,7 @@ for i = 1:N_stages
     end
 
     % Tip relative Mach check per equation sheet form
-    a_guess = sqrt(gamma_g*R_g*Tt1);  % conservative using total temp
+    a_guess = sqrt(gamma_g*R_g*max(Tt1,1));  % conservative using total temp
     Mz = Cz/max(a_guess,1e-9);
     MT_tip = U_tip/max(a_guess,1e-9);
     Mtip_r = sqrt(Mz^2 + (MT_tip - Mz*tan(alpha1))^2);
@@ -328,6 +328,14 @@ tau5 = 1 + (gamma_g-1)/2*M5^2;
 T5 = Tt5 / tau5;
 P5 = Pt5 / tau5^(gamma_g/(gamma_g-1));
 
+% length
+c = data.c;
+cz_factor = getOr(data,'cz_factor_turb',0.8);
+cz = cz_factor*c;
+
+N_rows = 2*N_stages;      % if your turbineModel uses N_stages = data.N_turb_stages
+
+
 %% -----------------------------
 % 8) Pack outputs
 % ------------------------------
@@ -354,6 +362,11 @@ turbine.P_delivered = eta_m * (mdot_g * cp_g * (Tt4 - Tt5)); % delivered to comp
 turbine.stage = stage;
 turbine.reactionVals = Rv(:);   % vector for constraints.m
 turbine.M_tip_turb = max([stage.Mtip_r]);
+turbine.sigma_c = sigma_c;
+turbine.l_t = N_rows*cz;  % no spacing term
+
+final = struct();
+
 
 
 % Constraints
@@ -454,6 +467,8 @@ end
 beta_c = max(0, beta_c);
 mdot_c = beta_c * mdot4;
 
+
+
 end
 
 %% ============================================================
@@ -485,5 +500,4 @@ Yp = Ymin + k*(s - sopt)^2;
 
 Yp = max(0.005, min(0.25, Yp)); % clamp
 
-turbine.sigma_c = sigma_c;
 end

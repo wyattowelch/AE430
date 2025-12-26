@@ -31,24 +31,11 @@ if isempty(dataLoaded)
     dataLoaded = true;
 end
 
-% Optional: warn if Tt3 or pt3 differ a lot from reference
-if abs(Tt3 - Tt3_ref) > 10
-    warning('fuelEquilibrium: Tt3 differs from table reference by more than 10 K.');
-end
-if abs(pt3 - pt3_ref) / pt3_ref > 0.05
-    warning('fuelEquilibrium: pt3 differs from table reference by more than 5%%.');
-end
 
 % Clamp phi to table bounds to avoid extrapolation
 phi_min = phi_vals(1);
 phi_max = phi_vals(end);
-if phi < phi_min
-    warning('fuelEquilibrium: phi below table range, clamping to %.3f', phi_min);
-    phi = phi_min;
-elseif phi > phi_max
-    warning('fuelEquilibrium: phi above table range, clamping to %.3f', phi_max);
-    phi = phi_max;
-end
+
 
 % 1D interpolation in phi
 Tt4 = interp1(phi_vals, Tt4_tab, phi, 'linear');

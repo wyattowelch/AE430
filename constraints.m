@@ -1,6 +1,6 @@
 function [c, ceq] = constraints(x, N_spools, data)
     
-    results = engineModel(x, N_spools, data);
+    [final, results] = engineModel(x, N_spools, data);
     % Returns (at minimum):
        % Tt4
        % Twg

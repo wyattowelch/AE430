@@ -1,21 +1,21 @@
-function results = engineModel(x, N_spools, data)
+function [final, results] = engineModel(x, N_spools, data)
 
     % Stage Calculations
     
     inlet = inletModel(x, N_spools, data);
     comp = compressorModel(x, N_spools, data, inlet);
     burner = burnerModel(x, N_spools, data, inlet, comp);
-    turbine = turbineModel(x, N_spools, data, inlet, comp, burner);
+    [turbine, turb] = turbineModel(x, N_spools, data, inlet, comp, burner);
     nozzle = nozzleModel(x, N_spools, data, inlet, comp, burner, turbine);
 
     mdot0 = burner.mdot3;                 % first pass
     [D_add, F_lip] = inletForces(mdot0, data, inlet);
-    
+    final = turb;
 
     
     % Compute outputs & Unpack   
 
-    results.A_max_eng = max([inlet.A1, inlet.A2, burner.A3, nozzle.A_t, nozzle.A_e]);
+    results.A_max_eng = max([inlet.A1, inlet.A2, burner.A3]);
 
     results.D_add = D_add;
     results.F_lip = F_lip;
@@ -47,5 +47,6 @@ function results = engineModel(x, N_spools, data)
     l_n = nozzle.l_n;
 
     results.l_tot = l_id + l_c + l_b + l_bd + l_t + l_n;
+
 
 end

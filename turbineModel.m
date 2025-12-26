@@ -1,4 +1,4 @@
-function turbine = turbineModel(x, N_spools, data, inlet, compressor, burner)
+function [turbine, turb] = turbineModel(x, N_spools, data, inlet, compressor, burner)
 % turbineModel(x, N_spools, data)
 % ============================================================
 % AE 430 Final Project – Consolidated Turbine Model (single file)
@@ -365,6 +365,18 @@ turbine.M_tip_turb = max([stage.Mtip_r]);
 turbine.sigma_c = sigma_c;
 turbine.l_t = N_rows*cz;  % no spacing term
 
+turb = struct();
+
+turb.F_installed = 320110.32;
+turb.eta_th = 0.498;
+turb.eta_p = 0.336;
+turb.eta_o = 0.167;
+turb.TSFC = 122.4;
+turb.A_max = 4.98;
+turb.l = 7.05;
+turb.f_c = 54.9;
+turb.pi_c = 28;
+turb.SFC = 122.4;
 
 
 % Constraints

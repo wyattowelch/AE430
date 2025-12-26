@@ -122,18 +122,18 @@ best_f  = Inf;
 best_x  = [];
 best_N  = [];
 
-x0 = [20; 1700];
+x0 = [10; 1750];
 lb = [5; 1200];
 ub = [60; 1900];
 
 for N_spools = [1 2 3]
 
-    dbstop if error
-    fun     = @(x) costFun(x, N_spools, data);
+    % dbstop if error
+    [fun, final]     = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
     
-    fun(x0)          % <-- this will show exactly where it fails
-    nonlcon(x0)      % <-- then check constraints
+    % fun(x0)          % <-- this will show exactly where it fails
+    % nonlcon(x0)      % <-- then check constraints
 
 
     [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
@@ -143,4 +143,7 @@ for N_spools = [1 2 3]
         best_x = x_opt;
         best_N = N_spools;
     end
+    d(final)
+
+
 end

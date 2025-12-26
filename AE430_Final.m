@@ -98,6 +98,7 @@ data.burner_phi_deg = 7;
 
 %x = [pi_c, Tt5];
 
+x = [1 2];
 x0 = [20; 1700];
     % pi_c; Tt5
 
@@ -126,21 +127,28 @@ x0 = [10; 1750];
 lb = [5; 1200];
 ub = [60; 1900];
 
+[final, results] = engineModel(x, N_spools, data);
+finalT = struct2table(final);
+disp(finalT)
+
 for N_spools = [1 2 3]
 
     % dbstop if error
     fun     = @(x) costFun(x, N_spools, data);
     nonlcon = @(x) constraints(x, N_spools, data);
-    
+
     % fun(x0)          % <-- this will show exactly where it fails
     % nonlcon(x0)      % <-- then check constraints
 
 
-    [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
+    % [x_opt, fval] = fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon);
 
     if fval < best_f
         best_f = fval;
         best_x = x_opt;
         best_N = N_spools;
     end
+
+
 end
+

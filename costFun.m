@@ -1,7 +1,7 @@
 function f_c = costFun(x, N_spools, data)
 
     try
-        results = engineModel(x, N_spools, data);
+        [final, results] = engineModel(x, N_spools, data);
 
         A   = results.A_max_eng;
         l   = results.l_tot;
