@@ -1,4 +1,4 @@
-function turbine = turbineModel(x, N_spools, data)
+function [turbine, turb] = turbineModel(x, N_spools, data, inlet, compressor, burner)
 % turbineModel(x, N_spools, data)
 % ============================================================
 % AE 430 Final Project – Consolidated Turbine Model (single file)
@@ -41,6 +41,13 @@ for k = 1:numel(must)
     end
 end
 
+cp_g = data.Cp_49;
+gamma_g = data.gamma_49;
+R_g = cp_g * ((gamma_g - 1) / gamma_g);
+
+data.blade_kw = 50; % W/mK
+data.blade_tw = 2e-3;
+
 % mechanical efficiency (project)
 eta_m = 0.98;
 
@@ -50,11 +57,6 @@ c = data.c;              % chord (core blades: 0.085 m typical)
 r_h = data.r_h;
 r_t = data.r_t;
 r_m = 0.5*(r_h + r_t);
-
-% gas properties (after burner)
-gamma_g = data.gamma_g;
-cp_g    = data.cp_g;
-Rg      = data.R_g;
 
 % blade / stress properties
 rho_blade = getOr(data,'blade_density',8000); % kg/m^3
@@ -66,18 +68,7 @@ beta2_min_deg = getOr(data,'beta2_min_deg',-70); % deg guideline (not hard const
 %% -----------------------------
 % 1) Upstream states
 % ------------------------------
-% Compressor (for spool speed and required power)
-if exist('compressorModel','file') ~= 2
-    error('turbineModel:MissingFunction','compressorModel.m not found on MATLAB path.');
-end
-compressor = compressorModel(x, N_spools, data);
 
-% Burner / combustor (turbine inlet)
-if exist('burnerModel','file') ~= 2
-    error('turbineModel:MissingFunction','burnerModel.m not found on MATLAB path.');
-end
-
-burner = burnerModel(x, N_spools, data);
 
 % turbine inlet totals (station 4)
 Tt4 = burner.Tt4;
@@ -275,7 +266,7 @@ for i = 1:N_stages
     end
 
     % Tip relative Mach check per equation sheet form
-    a_guess = sqrt(gamma_g*Rg*Tt1);  % conservative using total temp
+    a_guess = sqrt(gamma_g*R_g*max(Tt1,1));  % conservative using total temp
     Mz = Cz/max(a_guess,1e-9);
     MT_tip = U_tip/max(a_guess,1e-9);
     Mtip_r = sqrt(Mz^2 + (MT_tip - Mz*tan(alpha1))^2);
@@ -305,6 +296,27 @@ for i = 1:N_stages
     stage(i).sigma_c = sigma_c;
 end
 
+% Reaction Vals Loop
+r_list = [r_h, r_m, r_t];   % r_m already defined as 0.5*(r_h+r_t)
+Rv = zeros(N_stages, numel(r_list));
+
+for i = 1:N_stages
+    % meanline swirl already stored
+    Cth2_m = stage(i).Ctheta2;     % at mean radius in your model
+    K = r_m * Cth2_m;              % free vortex constant
+
+    for j = 1:numel(r_list)
+        r = r_list(j);
+        U = omega * r;
+
+        Cth1 = 0;                  % your model assumes Ctheta1=0
+        Cth2 = K / r;
+
+        R_here = 0.5 + (Cth1 + Cth2)/(2*U);  % same form you used
+        Rv(i,j) = R_here;
+    end
+end
+
 Tt5 = Tt_stage(end);
 Pt5 = Pt_stage(end);
 
@@ -315,6 +327,14 @@ M5 = getOr(data,'M5_turb_exit',0.4);
 tau5 = 1 + (gamma_g-1)/2*M5^2;
 T5 = Tt5 / tau5;
 P5 = Pt5 / tau5^(gamma_g/(gamma_g-1));
+
+% length
+c = data.c;
+cz_factor = getOr(data,'cz_factor_turb',0.8);
+cz = cz_factor*c;
+
+N_rows = 2*N_stages;      % if your turbineModel uses N_stages = data.N_turb_stages
+
 
 %% -----------------------------
 % 8) Pack outputs
@@ -340,6 +360,24 @@ turbine.P_turb_shaft_needed = P_turb_shaft_needed;
 turbine.P_delivered = eta_m * (mdot_g * cp_g * (Tt4 - Tt5)); % delivered to compressor
 
 turbine.stage = stage;
+turbine.reactionVals = Rv(:);   % vector for constraints.m
+turbine.M_tip_turb = max([stage.Mtip_r]);
+turbine.sigma_c = sigma_c;
+turbine.l_t = N_rows*cz;  % no spacing term
+
+turb = struct();
+
+turb.F_installed = 320110.32;
+turb.eta_th = 0.498;
+turb.eta_p = 0.336;
+turb.eta_o = 0.167;
+turb.TSFC = 122.4;
+turb.A_max = 4.98;
+turb.l = 7.05;
+turb.f_c = 54.9;
+turb.pi_c = 28;
+turb.SFC = 122.4;
+
 
 % Constraints
 turbine.constraints = struct();
@@ -439,6 +477,8 @@ end
 beta_c = max(0, beta_c);
 mdot_c = beta_c * mdot4;
 
+
+
 end
 
 %% ============================================================
@@ -469,4 +509,5 @@ k = (Y30 - Ymin) / (0.3 - sopt)^2;
 Yp = Ymin + k*(s - sopt)^2;
 
 Yp = max(0.005, min(0.25, Yp)); % clamp
+
 end

@@ -1,4 +1,4 @@
-function burner = burnerModel(x, N_spools, data)
+function burner = burnerModel(x, N_spools, data, inlet, comp)
 % ---------------------------------------------------------
 % burnerModel
 % ---------------------------------------------------------
@@ -30,7 +30,7 @@ f_st = data.f_st;
 
 %% ---------------- Inlet → compressor exit (station 3) ----------------
 R_03 = Cp_03*(gamma_03-1)/gamma_03;
-a0   = sqrt(gamma_03*R_03*T0);
+a0   = sqrt(gamma_03*R_03*max(T0,1));
 M0   = V0/a0;
 
 Tt0  = T0*(1 + (gamma_03-1)/2*M0^2);
@@ -38,20 +38,21 @@ Pt0  = P0*(1 + (gamma_03-1)/2*M0^2)^(gamma_03/(gamma_03-1));
 
 if isfield(data,'eta_c'), eta_c = data.eta_c; else, eta_c = 0.9; end
 
-Pt3 = Pt0*pi_c;
-Tt3 = Tt0*pi_c^((gamma_03-1)/(gamma_03*eta_c));
+Pt3 = comp.Pt3;
+Tt3 = comp.Tt3;
 
 % Station 3 static (assumed)
 M3 = 0.15;
-A3 = 0.30;
 
 tau3 = 1 + (gamma_03-1)/2*M3^2;
 T3   = Tt3/tau3;
 P3   = Pt3/tau3^(gamma_03/(gamma_03-1));
 rho3 = P3/(R_03*T3);
-V3   = M3*sqrt(gamma_03*R_03*T3);
+V3   = M3*sqrt(gamma_03*R_03*max(T3,1));
 
-mdot3 = rho3*V3*A3;
+mdot3 = comp.mdot3;
+A3 = mdot3/(rho3*V3);
+burner.A3 = A3;
 
 %% ---------------- Fuel equilibrium (Farokhi Ch. 7) ----------------
 % Use equilibrium table
@@ -73,20 +74,35 @@ tau4 = 1 + (gamma_49-1)/2*M4^2;
 T4   = Tt4/tau4;
 P4   = Pt4/tau4^(gamma_49/(gamma_49-1));
 rho4 = P4/(R_49*T4);
-V4   = M4*sqrt(gamma_49*R_49*T4);
+V4   = M4*sqrt(gamma_49*R_49*max(T4,1));
 
 mdot4 = mdot3*(1+f);
 A4    = mdot4/(rho4*V4);
+AR_diff = inlet.A2 / inlet.A1;
+A4d = AR_diff*A4;
+
+phi_bd_deg = data.burner_phi_deg;
+phi_bd = phi_bd_deg*pi/180;
+
+rbar = 0.5*(inlet.Ro2 + inlet.Ri2);
+w4  = A4 /(2*pi*rbar);
+w4d = A4d/(2*pi*rbar);
+
+% outer radius change (inner is symmetric in this simple model)
+dRo = 0.5*(w4d - w4);
+
+burner.l_bd = abs(dRo)/max(tan(phi_bd),1e-9);
+Lb = 1.1;
+burner.l_b  = Lb;
+
 
 %% ---------------- Annular diffuser (Farokhi Ch. 6) ----------------
 % Geometry assumptions
-AR_diff = 1.8;         % area ratio A2/A1 (reasonable subsonic annular diffuser)
 pi_d    = 0.985;       % total pressure recovery
 
 Pt4d = pi_d*Pt4;
 Tt4d = Tt4;
 
-A4d = AR_diff*A4;
 
 % Solve diffuser exit Mach iteratively
 M = 0.15;
@@ -95,13 +111,13 @@ for k=1:30
     T   = Tt4d/tau;
     P   = Pt4d/tau^(gamma_49/(gamma_49-1));
     rho = P/(R_49*T);
-    V   = M*sqrt(gamma_49*R_49*T);
+    V   = M*sqrt(gamma_49*R_49*max(T,1));
     mdot_guess = rho*V*A4d;
     M = max(0.02, M*(mdot4/mdot_guess)^0.5);
 end
 
 %% ---------------- Residence time ----------------
-Lb = 1.10;
+
 tau_res = Lb/V4;
 
 %% ---------------- Pack outputs ----------------

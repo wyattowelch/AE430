@@ -1,0 +1,231 @@
+function compressor = compressorModel(x, N_spools, data, inlet)
+% compressorModel
+% 11-stage axial compressor model compatible with burnerModel and turbineModel
+%
+% x(1) = overall compressor pressure ratio pi_c
+
+%%
+% 1) Inputs and constants
+compressor = struct();
+pi_c = x(1);
+
+gamma = data.gamma_03;
+cp    = data.Cp_03;              % J/kg-K
+R     = cp*(gamma-1)/gamma;                      % consistent with burnerModel style
+
+T0 = data.T0;                       % K
+P0 = data.P0;                     % Pa
+V0 = data.V0;                       % m/s
+
+
+mdot3 = inlet.mdot0;
+compressor.mdot3 = mdot3;
+
+% FIXED number of stages (11 for project requirement)
+N_stages = 11;
+
+%% 
+% 2) Compressor inlet (station 2)
+
+if nargin >= 4 && isstruct(inlet) && isfield(inlet,'Tt2') && isfield(inlet,'Pt2') ...
+        && ~isempty(inlet.Tt2) && ~isempty(inlet.Pt2)
+    Tt2 = inlet.Tt2;
+    Pt2 = inlet.Pt2;
+else
+    % fallback if inlet model isnt done
+    a0 = sqrt(gamma*R*T0);
+    M0 = V0/a0;
+    Tt2 = T0*(1 + (gamma-1)/2*M0^2);
+    Pt2 = P0*(1 + (gamma-1)/2*M0^2)^(gamma/(gamma-1));
+end
+
+%% 
+% 3) Per-stage pressure ratio
+
+pi_stage = pi_c^(1/N_stages);
+
+%%
+% 4) Allocate arrays (stage-by-stage)
+
+Tt = zeros(N_stages+1,1);
+Pt = zeros(N_stages+1,1);
+W_stage = zeros(N_stages,1);
+
+Tt(1) = Tt2;
+Pt(1) = Pt2;
+
+%%
+% Geometry
+omega = data.omega;
+
+Cz = data.Cz_comp;
+
+% Use inlet annulus if available; else use data fields
+if nargin >= 4 && isstruct(inlet) && isfield(inlet,'Ri2') && isfield(inlet,'Ro2')
+    r_h = inlet.Ri2;
+    r_t = inlet.Ro2;
+else
+    r_h = getOr(data,'r_h_comp',0.25);
+    r_t = getOr(data,'r_t_comp',0.50);
+end
+r_m = 0.5*(r_h + r_t);
+U_m = omega * r_m;
+
+reactionVals_stage = zeros(N_stages,3);
+
+%%
+% 5) 11-stage compression loop
+
+for i = 1:N_stages
+
+    % Isentropic temperature ratio for this stage
+    tau_is = pi_stage^((gamma-1)/gamma);
+
+    % Get eta_c
+    eta_c = data.eta_c;  
+    eta_c = min(max(eta_c, .7), .95);
+
+    % Actual temperature rise (efficiency included)
+    dTt = (Tt(i)/eta_c)*(tau_is - 1);
+
+    Delta_h0 = cp * dTt;      % J/kg for this stage (same as W_stage(i))
+    
+    % Meanline whirl assuming rotor inlet whirl ~ 0
+    Ctheta1_m = 0;
+    Ctheta2_m = Delta_h0 / U_m;   % Euler
+    
+    r_list = [r_h r_m r_t];
+    
+    deH_min = 0.72;
+    stalls_stage = zeros(N_stages,3);
+
+    for j = 1:3
+        r = r_list(j);
+        U = omega * r;
+    
+        % free vortex scaling
+        Ctheta1 = 0;
+        Ctheta2 = Ctheta2_m * (r_m/r);
+    
+        % Use same reaction form as your turbineModel for consistency
+        R_here = 0.5 + (Ctheta2 + Ctheta1)/(2*U);
+    
+        reactionVals_stage(i,j) = R_here;
+
+        W1 = hypot(Cz, (Ctheta1 - U));
+        W2 = hypot(Cz, (Ctheta2 - U));
+        
+        deH = W2 / max(W1,1e-9);
+        
+        % store as a CONSTRAINT RESIDUAL: <= 0 means "not stalled"
+        stalls_stage(i,j) = deH_min - deH;
+
+    end
+
+
+    % Update totals
+    Tt(i+1) = Tt(i) + dTt;
+    Pt(i+1) = Pt(i) * pi_stage;
+
+    % Stage specific work
+    W_stage(i) = cp * dTt;
+
+    Delta_h0 = cp*dTt;        % J/kg stage work
+    
+    U_m = omega*r_m;
+    Cth2_m = Delta_h0 / max(U_m,1e-9);   % Euler, assuming Ctheta1=0 at meanline
+    K = r_m * Cth2_m;                    % free-vortex constant
+
+end
+
+
+
+%% 
+% 6) Compressor exit (station 3)
+
+Tt3 = Tt(end);
+Pt3 = Pt(end);
+
+% Total specific work (sum of stages)
+W_comp = sum(W_stage);
+
+% Shaft power required
+P_comp = [];
+if ~isempty(mdot3)
+    P_comp = mdot3 * W_comp;
+end
+
+%% 
+% 7) Package outputs (for turbine & burner)
+
+compressor.Tt2 = Tt2;
+compressor.Pt2 = Pt2;
+compressor.Tt3 = Tt3;
+compressor.Pt3 = Pt3;
+
+compressor.pi_c = pi_c;
+compressor.N_stages = N_stages;
+
+compressor.W_stage = W_stage;      % J/kg per stage
+compressor.W_comp  = W_comp;       % J/kg total
+compressor.mdot3   = mdot3;
+
+if ~isempty(P_comp)
+    compressor.P_required_shaft = P_comp;
+end
+
+%% 
+% 8) Stage-by-stage results table (not necessary)
+
+Stage = (1:N_stages).';
+Tt_in  = Tt(1:end-1);
+Tt_out = Tt(2:end);
+Pt_in  = Pt(1:end-1);
+Pt_out = Pt(2:end);
+pi_s   = Pt_out ./ Pt_in;
+
+compressor.stageTable = table( ...
+    Stage, ...
+    Tt_in, Tt_out, ...
+    Pt_in, Pt_out, ...
+    pi_s, ...
+    W_stage, ...
+    'VariableNames', ...
+    {'Stage','Tt_in_K','Tt_out_K','Pt_in_Pa','Pt_out_Pa','pi_stage','W_stage_Jpkg'} );
+
+% Length
+c = data.c;
+cz_factor  = getOr(data,'cz_factor_core',0.8);
+gap_factor = getOr(data,'gap_factor_core',0.2);
+
+cz  = cz_factor*c;
+gap = gap_factor*c;
+
+N_rows = 2*N_stages;                 % rotor+stator rows
+compressor.l_c = N_rows*cz + (N_rows-1)*gap;
+
+
+
+compressor.success = true;
+
+compressor.reactionVals = reactionVals_stage(:);
+compressor.omega = omega;
+compressor.r_h = r_h;
+compressor.r_t = r_t;
+compressor.Cz = Cz;
+compressor.stalls = stalls_stage(:);
+end
+
+%%
+% Helper function
+% 
+function v = getOr(s, field, defaultVal)
+    if isstruct(s) && isfield(s,field) && ~isempty(s.(field))
+        v = s.(field);
+    else
+        v = defaultVal;
+    end
+
+
+end
+

@@ -1,15 +1,23 @@
-function f_c = costFun(x, N_spools, data)    
-    
+function f_c = costFun(x, N_spools, data)
 
-    results = engineModel(x, N_spools, data);
-    % Returns (at minimum):
-        % A_max_eng
-        % tot_l
-        % eta_0
-    
-    
-    % f_c function!
-    
-    f_c = sqrt(results.A_max_eng) * sqrt(results.tot_l) / (results.eta_0^2) * (3 + N_spools);
+    try
+        [final, results] = engineModel(x, N_spools, data);
 
+        A   = results.A_max_eng;
+        l   = results.l_tot;
+        eta = results.eta_0;
+
+        if ~isfinite(A) || ~isreal(A) || A <= 0 || ...
+           ~isfinite(l) || ~isreal(l) || l <= 0 || ...
+           ~isfinite(eta) || ~isreal(eta) || eta <= 0
+            f_c = 1e30; 
+            return
+        end
+
+        eta = max(eta, 1e-6);
+        f_c = sqrt(A) * sqrt(l) / (eta^2) * (3 + N_spools);
+
+    catch
+        f_c = 1e30;
+    end
 end

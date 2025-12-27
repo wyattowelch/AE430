@@ -1,6 +1,6 @@
 function [c, ceq] = constraints(x, N_spools, data)
     
-    results = engineModel(x, N_spools, data);
+    [final, results] = engineModel(x, N_spools, data);
     % Returns (at minimum):
        % Tt4
        % Twg
@@ -30,8 +30,8 @@ function [c, ceq] = constraints(x, N_spools, data)
     c(end+1) = results.M_tip_turb - 1.2;
 
     % rh, rm, rt cannot ctall
-    for k = 1:numel(stalls)
-        c(end+1) = results.stalls(k)
+    for k = 1:numel(results.stalls)
+        c(end+1) = results.stalls(k);
     end
 
     % degree of reaction between 1 and 0 
@@ -43,7 +43,7 @@ function [c, ceq] = constraints(x, N_spools, data)
 
     % Equality Constraints:
 
-    ceq(end+1) = results.F - data.F_req;
+    ceq(end+1) = results.F_in - data.F_req;
 
 
 end
